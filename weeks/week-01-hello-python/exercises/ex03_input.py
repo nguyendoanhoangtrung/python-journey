@@ -6,14 +6,12 @@ Mục tiêu: Sử dụng input() để nhận dữ liệu từ người dùng
 
 # TODO 1: Hỏi tên người dùng và in lời chào
 # Ví dụ: "Xin chào, Minh!"
-print("TODO 1:")
 ten = input("Bạn tên là gì? ")
 print(f"Xin chào, {ten}!")
 
 
 # TODO 2: Hỏi tuổi người dùng, tính và in năm sinh
 # Gợi ý: Nhớ chuyển input sang int!
-print("TODO 2:")
 tuoi = int(input("Bạn bao nhiêu tuổi? "))
 nam_hien_tai = 2026
 nam_sinh = nam_hien_tai - tuoi
@@ -25,7 +23,6 @@ print(f"Bạn sinh khoảng năm {nam_sinh}.")
 # Nhập số thứ nhất: 15
 # Nhập số thứ hai: 27
 # Tổng: 15 + 27 = 42
-print("TODO 3:")
 so_thu_nhat = int(input("Nhập số thứ nhất: "))
 so_thu_hai = int(input("Nhập số thứ hai: "))
 tong = so_thu_nhat + so_thu_hai
@@ -35,7 +32,6 @@ print(f"Tổng: {so_thu_nhat} + {so_thu_hai} = {tong}")
 # TODO 4 (Thử thách): Tạo Mad Libs mini
 # Hỏi người dùng nhập: tên, tính từ, con vật, số
 # Rồi in ra câu chuyện vui
-print("TODO 4:")
 ten_nhan_vat = input("Nhập tên: ")
 tinh_tu = input("Nhập một tính từ: ")
 con_vat = input("Nhập tên một con vật: ")
