@@ -1,0 +1,152 @@
+{
+  "engine_version": "AG01-v1.0",
+  "assessment_type": "formative_self_check",
+  "mode": "student",
+  "week_id": "W01",
+  "rubric_sha256": "cad38f0e3fe5743dda6521e805afa4d04358cb420177e3f0fca2b1ecf1db9779",
+  "auto_score": 0,
+  "auto_max_points": 5,
+  "manual_score": null,
+  "manual_max_points": 5,
+  "official_score": null,
+  "passed_criteria": 0,
+  "total_criteria": 11,
+  "tasks": [
+    {
+      "id": "W01-EX01",
+      "path": "weeks/week-01-hello-python/exercises/ex01_hello.py",
+      "source_sha256": "a186aafa40979e75e5b725af1afd048154bc069d517377c04438389c9beb85b0",
+      "checks": [
+        {
+          "id": "W01.HELLO",
+          "skill": "PY.PRINT.01",
+          "label": "In Hello, World!",
+          "passed": false,
+          "earned": 0,
+          "maximum": 0.5,
+          "reason": "Chương trình phát sinh lỗi chạy; xem traceback trên máy.",
+          "hint": "Thử print('Hello, World!') và đối chiếu dấu câu."
+        },
+        {
+          "id": "W01.NAME",
+          "skill": "PY.PRINT.01",
+          "label": "Tên trên một dòng riêng",
+          "passed": false,
+          "earned": 0,
+          "maximum": 0.5,
+          "reason": "Chương trình phát sinh lỗi chạy; xem traceback trên máy.",
+          "hint": "Viết thêm một dòng print() để giới thiệu tên bản thân."
+        },
+        {
+          "id": "W01.INTERESTS",
+          "skill": "PY.STRING.01",
+          "label": "Ba sở thích",
+          "passed": false,
+          "earned": 0,
+          "maximum": 0.5,
+          "reason": "Chương trình phát sinh lỗi chạy; xem traceback trên máy.",
+          "hint": "Tạo ba dòng khác nhau để mô tả ba sở thích."
+        },
+        {
+          "id": "W01.RECTANGLE",
+          "skill": "PY.PRINT.02",
+          "label": "Hình chữ nhật 5 × 4",
+          "passed": false,
+          "earned": 0,
+          "maximum": 0.5,
+          "reason": "Chương trình phát sinh lỗi chạy; xem traceback trên máy.",
+          "hint": "Đối chiếu đủ bốn dòng ***** / *   * / *   * / ***** và các khoảng trắng."
+        }
+      ]
+    },
+    {
+      "id": "W01-EX02",
+      "path": "weeks/week-01-hello-python/exercises/ex02_calculator.py",
+      "source_sha256": "3b86e45b146f43cf9022dade72d85581234c83d59b4411b94bd5cef3ebef77f5",
+      "checks": [
+        {
+          "id": "W01.SUM",
+          "skill": "PY.ARITH.01",
+          "label": "Phép cộng",
+          "passed": false,
+          "earned": 0,
+          "maximum": 0.4,
+          "reason": "Chương trình phát sinh lỗi chạy; xem traceback trên máy.",
+          "hint": "In giá trị biểu thức 2024 + 1000, đừng chỉ chép đáp số."
+        },
+        {
+          "id": "W01.BALANCE",
+          "skill": "PY.ARITH.01",
+          "label": "Trừ và nhân",
+          "passed": false,
+          "earned": 0,
+          "maximum": 0.4,
+          "reason": "Chương trình phát sinh lỗi chạy; xem traceback trên máy.",
+          "hint": "Dùng phép nhân để tính tổng chi phí, sau đó lấy tiền ban đầu trừ đi."
+        },
+        {
+          "id": "W01.AREA",
+          "skill": "PY.ARITH.02",
+          "label": "Diện tích và lũy thừa",
+          "passed": false,
+          "earned": 0,
+          "maximum": 0.4,
+          "reason": "Chương trình phát sinh lỗi chạy; xem traceback trên máy.",
+          "hint": "Dùng 3.14159 * 7 ** 2 và làm tròn 2 chữ số khi in."
+        },
+        {
+          "id": "W01.QUOTIENT",
+          "skill": "PY.ARITH.03",
+          "label": "Chia lấy phần nguyên",
+          "passed": false,
+          "earned": 0,
+          "maximum": 0.4,
+          "reason": "Chương trình phát sinh lỗi chạy; xem traceback trên máy.",
+          "hint": "Dùng toán tử // để tìm số kẹo mỗi người nhận."
+        },
+        {
+          "id": "W01.REMAINDER",
+          "skill": "PY.ARITH.03",
+          "label": "Chia lấy dư",
+          "passed": false,
+          "earned": 0,
+          "maximum": 0.4,
+          "reason": "Chương trình phát sinh lỗi chạy; xem traceback trên máy.",
+          "hint": "Dùng toán tử % để tìm số kẹo còn lại."
+        }
+      ]
+    },
+    {
+      "id": "W01-PROJECT",
+      "path": "weeks/week-01-hello-python/mini-project/starter_basic.py",
+      "source_sha256": "eee2460737f019c72bdef209d2e59faf5ad0b482b18c5a09c8c246dd09bf4ded",
+      "checks": [
+        {
+          "id": "W01.FRAME",
+          "skill": "PY.PRINT.02",
+          "label": "Ba dòng khung ASCII thẳng hàng",
+          "passed": false,
+          "earned": 0,
+          "maximum": 0.5,
+          "reason": "Chưa phát hiện lệnh print() thực thi được.",
+          "hint": "Viền +---+ trên và dưới giống nhau, dòng giữa dài bằng viền."
+        },
+        {
+          "id": "W01.MESSAGE",
+          "skill": "PY.STRING.01",
+          "label": "Thông điệp Xin chào trong khung",
+          "passed": false,
+          "earned": 0,
+          "maximum": 0.5,
+          "reason": "Chưa phát hiện lệnh print() thực thi được.",
+          "hint": "In một dòng bắt đầu và kết thúc bằng |, có lời Xin chào."
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Điểm máy chỉ phản ánh tiêu chí công khai; không xác nhận tác giả.",
+    "Kết quả chấm mẫu không phải điểm sinh viên.",
+    "Mã Python không tin cậy phải được chạy trong sandbox thực sự."
+  ]
+}
