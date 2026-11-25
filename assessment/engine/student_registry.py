@@ -11,7 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 @dataclass(frozen=True)
 class StudentCheck:
     week: str
-    directory: str
+    directory: str 
     focus: str
     scope: str
     argv: tuple[str, ...] | None

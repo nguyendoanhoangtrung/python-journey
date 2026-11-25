@@ -76,7 +76,7 @@ quantity_text = "3" (str)
            ↓ int("3")
 quantity = 3 (int)
            ↓ quantity * 25_000
-total = 75000 (int)
+total = 75000 (int) 
            ↓ f"{total:,}"
 "75,000" để hiển thị
 ```

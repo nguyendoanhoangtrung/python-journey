@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PyGrader AI — Hybrid Sandbox</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/placeholder.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            ide: {
+              bg: '#0d1117',
+              sidebar: '#161b22',
+              panel: '#1c2128',
+              border: '#30363d',
+              hover: '#21262d',
+              accent: '#2f81f7',
+              text: '#e6edf3',
+              muted: '#8b949e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { background-color: #0d1117; color: #e6edf3; font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0d1117; }
+    ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+    .CodeMirror {
+      height: 100% !important; width: 100% !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: var(--editor-font-size, 14px); line-height: 1.65;
+      background-color: #0d1117 !important; color: #e6edf3 !important;
+    }
+    .CodeMirror-gutters { background-color: #0d1117 !important; border-right: 1px solid #21262d !important; }
+    .CodeMirror-linenumber { color: #6e7681 !important; }
+    .CodeMirror-cursor { border-left: 2px solid #58a6ff !important; }
+    .CodeMirror-selected { background: rgba(56, 139, 253, 0.3) !important; }
+    .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: 600; color: #f0f6fc; margin-top: 1em; margin-bottom: 0.5em; }
+    .markdown-body h1 { font-size: 1.25rem; border-bottom: 1px solid #30363d; padding-bottom: 0.3em; }
+    .markdown-body p { margin-bottom: 0.75em; line-height: 1.6; }
+    .markdown-body ul, .markdown-body ol { padding-left: 1.5em; margin-bottom: 0.75em; list-style-type: disc; }
+    .markdown-body code { background: #161b22; border: 1px solid #30363d; padding: 0.15em 0.35em; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.85em; color: #79c0ff; }
+    .markdown-body pre { background: #161b22; border: 1px solid #30363d; padding: 12px; border-radius: 6px; overflow-x: auto; margin-bottom: 0.75em; }
+    .markdown-body pre code { border: none; padding: 0; background: transparent; color: #e6edf3; }
+  </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden select-none">
+
+  <!-- HEADER -->
+  <header class="h-14 bg-ide-sidebar border-b border-ide-border px-4 flex items-center justify-between shrink-0 z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
+        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-bold text-sm sm:text-base text-white">PyGrader <span class="text-blue-400">AI</span></h1>
+          <span id="pyodideStatusBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+            Đang tải Python Engine...
+          </span>
+        </div>
+        <p class="text-[11px] text-ide-muted hidden sm:block">Hybrid Sandbox • Local + Gemini AI</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button id="openApiKeyModalBtn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-ide-panel hover:bg-ide-hover text-ide-text border border-ide-border transition">
+        <span id="apiKeyStatusDot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span>🔑 API Key</span>
+      </button>
+      <label for="folderInput" class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-ide-panel hover:bg-ide-hover text-ide-text border border-ide-border transition">
+        <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        </svg>
+        <span>Gán Folder</span>
+        <input id="folderInput" type="file" webkitdirectory directory multiple class="hidden" />
+      </label>
+      <button id="loadSampleBtn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-400 border border-emerald-500/30 transition">
+        <span>Nạp Mẫu Week 02</span>
+      </button>
+      <button id="gradeAllBtn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-600 hover:bg-purple-500 text-white transition disabled:opacity-40" disabled>
+        <span>Chấm Toàn Bộ</span>
+      </button>
+      <button id="summaryModalBtn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-ide-panel hover:bg-ide-hover text-ide-text border border-ide-border transition disabled:opacity-40" disabled>
+        <span>Tổng Kết</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="w-full lg:w-[270px] bg-ide-sidebar border-b lg:border-b-0 lg:border-r border-ide-border flex flex-col shrink-0 max-h-56 lg:max-h-none">
+      <div class="px-3 py-2.5 border-b border-ide-border flex items-center justify-between">
+        <span class="text-[11px] font-semibold uppercase tracking-wider text-ide-muted">Thư mục bài tập</span>
+        <span id="fileCountBadge" class="text-[11px] px-1.5 py-0.5 rounded bg-ide-panel text-ide-muted border border-ide-border">0 bài</span>
+      </div>
+      <div id="fileTreeContainer" class="flex-1 overflow-y-auto p-2 space-y-3">
+        <div id="dropZone" class="h-full min-h-[140px] border-2 border-dashed border-ide-border hover:border-blue-500/60 rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer bg-ide-bg/40">
+          <p class="text-xs font-medium text-ide-text mb-1">Kéo thả thư mục bài tập vào đây</p>
+          <p class="text-[11px] text-ide-muted">hoặc bấm "Gán Folder"</p>
+        </div>
+      </div>
+      <div id="sidebarScoreFooter" class="hidden p-3 border-t border-ide-border bg-ide-panel/50">
+        <div class="flex items-center justify-between text-xs mb-1.5">
+          <span class="text-ide-muted">Tiến độ:</span>
+          <span id="gradedProgressText" class="font-semibold">0/0 bài</span>
+        </div>
+        <div class="w-full h-1.5 bg-ide-bg rounded-full overflow-hidden mb-2">
+          <div id="gradedProgressBar" class="h-full bg-gradient-to-r from-blue-500 to-emerald-400 transition-all" style="width:0%"></div>
+        </div>
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-ide-muted">Điểm TB:</span>
+          <span id="averageScoreText" class="font-mono font-bold text-emerald-400">-- / 10</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- EDITOR -->
+    <main class="flex-1 flex flex-col min-w-0 bg-ide-bg overflow-hidden">
+      <div class="min-h-[44px] bg-ide-sidebar border-b border-ide-border px-3 py-1.5 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span id="activeCategoryPill" class="hidden px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide"></span>
+          <span id="activeFilePath" class="font-mono text-xs text-ide-text truncate">Chưa chọn file</span>
+          <span id="modifiedBadge" class="hidden px-2 py-0.5 rounded text-[10px] bg-amber-500/15 text-amber-300 border border-amber-500/30">● Đã sửa</span>
+          <span id="hasSolutionBadge" class="hidden px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">✓ Có đáp án</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button id="fontDecreaseBtn" class="px-2 py-1 text-[11px] font-mono text-ide-muted hover:text-white bg-ide-panel border border-ide-border rounded-l">A-</button>
+          <button id="fontIncreaseBtn" class="px-2 py-1 text-[11px] font-mono text-ide-muted hover:text-white bg-ide-panel border border-ide-border rounded-r">A+</button>
+          <button id="viewPromptBtn" class="hidden items-center gap-1 px-2.5 py-1 rounded-md text-xs bg-ide-panel hover:bg-ide-hover border border-ide-border">Đề bài</button>
+          <button id="downloadCodeBtn" class="hidden items-center gap-1 px-2.5 py-1 rounded-md text-xs bg-ide-panel hover:bg-ide-hover border border-ide-border">Tải .py</button>
+          <button id="resetCodeBtn" class="hidden items-center gap-1 px-2.5 py-1 rounded-md text-xs bg-ide-panel hover:bg-ide-hover border border-ide-border">Reset</button>
+          <button id="runCodeBtn" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40" disabled>Chạy Thử</button>
+          <button id="gradeLocalBtn" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-teal-600 hover:bg-teal-500 text-white disabled:opacity-40" disabled>Local</button>
+          <button id="gradeHybridBtn" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-40" disabled>Hybrid</button>
+          <button id="gradeSingleBtn" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-40" disabled>AI</button>
+        </div>
+      </div>
+
+      <div id="codeEditorWrapper" class="flex-1 min-h-[55%] relative overflow-hidden bg-[#0d1117]">
+        <textarea id="codeEditor" placeholder="# Chọn bài tập bên trái hoặc bấm 'Nạp Mẫu Week 02'..."></textarea>
+      </div>
+
+      <div class="h-60 sm:h-64 border-t border-ide-border bg-ide-sidebar flex flex-col">
+        <div id="stdinContainer" class="border-b border-ide-border bg-ide-panel/80 px-3 py-2">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-blue-400">Dữ liệu Input (Stdin)</span>
+            <button id="autoFillInputBtn" class="hidden text-[11px] text-blue-400 hover:text-blue-300 underline">Điền mẫu</button>
+          </div>
+          <div id="dynamicInputsWrapper">
+            <input id="rawStdinInput" type="text" placeholder="Nhập input (nếu code có input())..." class="w-full bg-ide-bg border border-ide-border rounded-md px-2.5 py-1 text-xs font-mono outline-none" />
+          </div>
+        </div>
+        <div class="px-3 py-1.5 border-b border-ide-border flex items-center justify-between">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-ide-muted">Console</span>
+          <button id="clearConsoleBtn" class="text-[11px] text-ide-muted hover:text-ide-text">Xóa</button>
+        </div>
+        <div id="terminalOutput" class="flex-1 p-3 font-mono text-xs overflow-y-auto bg-[#090c10] whitespace-pre-wrap leading-relaxed">
+          <span class="text-ide-muted italic">Sẵn sàng. Bấm "Chạy Thử" để xem kết quả...</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- AI RESULT -->
+    <section class="w-full lg:w-[380px] bg-ide-sidebar border-t lg:border-t-0 lg:border-l border-ide-border flex flex-col">
+      <div class="h-11 px-4 border-b border-ide-border flex items-center justify-between">
+        <h2 class="text-xs font-semibold uppercase tracking-wider">Đánh Giá & Chấm Điểm</h2>
+        <span id="aiModelBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">Hybrid / Local / Gemini</span>
+      </div>
+      <div id="aiResultContainer" class="flex-1 overflow-y-auto p-4">
+        <div class="h-full flex flex-col items-center justify-center text-center p-6 text-ide-muted">
+          <p class="text-sm font-medium text-ide-text mb-1">Chưa có kết quả</p>
+          <p class="text-xs">Chọn bài và bấm <strong class="text-teal-400">Local</strong>, <strong class="text-indigo-400">Hybrid</strong> hoặc <strong class="text-blue-400">AI</strong></p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- MODALS -->
+  <div id="apiKeyModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-ide-sidebar border border-ide-border rounded-xl max-w-md w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-ide-border pb-3">
+        <h3 class="font-bold text-sm">🔑 Cấu Hình Gemini API Key</h3>
+        <button id="closeApiKeyModalBtn" class="text-ide-muted hover:text-white">✕</button>
+      </div>
+      <p class="text-xs text-ide-muted">Lấy key miễn phí tại <a href="https://aistudio.google.com/apikey" target="_blank" class="text-blue-400 underline">aistudio.google.com/apikey</a></p>
+      <input id="geminiApiKeyInput" type="password" placeholder="AIzaSy..." class="w-full bg-ide-bg border border-ide-border rounded-lg px-3 py-2 text-xs font-mono outline-none" />
+      <div class="flex justify-end gap-2">
+        <button id="clearApiKeyBtn" class="px-3 py-1.5 text-xs text-red-400">Xóa Key</button>
+        <button id="saveApiKeyBtn" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white">Lưu Key</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="promptModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-ide-sidebar border border-ide-border rounded-xl max-w-4xl w-full max-h-[85vh] flex flex-col">
+      <div class="px-5 py-3.5 border-b border-ide-border flex justify-between">
+        <h3 id="promptModalTitle" class="font-semibold text-sm">Đề bài & Đáp án</h3>
+        <button id="closePromptModalBtn" class="text-ide-muted hover:text-white">✕</button>
+      </div>
+      <div id="promptModalBody" class="p-5 overflow-y-auto text-sm"></div>
+    </div>
+  </div>
+
+  <div id="summaryModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-ide-sidebar border border-ide-border rounded-xl max-w-4xl w-full max-h-[88vh] flex flex-col">
+      <div class="px-5 py-4 border-b border-ide-border flex justify-between">
+        <h3 class="font-bold text-base">Bảng Tổng Kết Điểm</h3>
+        <button id="closeSummaryModalBtn" class="text-ide-muted hover:text-white">✕</button>
+      </div>
+      <div id="summaryModalBody" class="p-5 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-50 hidden items-center gap-2 px-4 py-2.5 rounded-xl bg-ide-panel border border-ide-border shadow-xl text-xs">
+    <span id="toastIcon"></span>
+    <span id="toastMessage"></span>
+  </div>
+
+  <script>
+    // ===================== STATE =====================
+    const state = {
+      pyodide: null,
+      pyodideReady: false,
+      cmEditor: null,
+      editorFontSize: 14,
+      isSyncingEditor: false,
+      rootFolderName: '',
+      tasks: [],
+      referenceFiles: {},
+      activeTaskId: null,
+      isGradingAll: false,
+      userApiKey: localStorage.getItem('pygrader_gemini_api_key') || ''
+    };
+
+    // ===================== SAMPLE DATA =====================
+    const SAMPLE_WEEK_02_FILES = {
+      'week-02-variables-types/README.md': `# Week 02: Variables, Data Types & Input\n\nMục tiêu:\n- Khai báo biến chuẩn PEP8\n- Chuyển đổi kiểu dữ liệu\n- Sử dụng input() và f-string`,
+      'week-02-variables-types/exercises/ex01_variables.py': `# Exercise 01: Variables & Basic Types
+student_name = "Tran Minh Khoa"
+student_age = 19
+gpa = 3.75
+is_enrolled = True
+print(f"Sinh vien: {student_name} | Tuoi: {student_age} | GPA: {gpa} | Dang hoc: {is_enrolled}")
+`,
+      'week-02-variables-types/solutions/ex01_variables_sol.py': `student_name = "Nguyen Van A"
+student_age = 20
+gpa = 3.65
+is_enrolled = True
+print(f"Sinh vien: {student_name} | Tuoi: {student_age} | GPA: {gpa} | Dang hoc: {is_enrolled}")
+`,
+      'week-02-variables-types/exercises/ex02_type_conversion.py': `# Exercise 02: Type Conversion
+raw_price = "45000"
+raw_quantity = "3"
+raw_discount = "0.1"
+price = int(raw_price)
+quantity = int(raw_quantity)
+discount = float(raw_discount)
+subtotal = price * quantity
+final_total = subtotal - discount   # lỗi cố ý
+print(f"Tong thanh toan: {final_total:.0f} VND")
+`,
+      'week-02-variables-types/solutions/ex02_type_conversion_sol.py': `raw_price = "45000"
+raw_quantity = "3"
+raw_discount = "0.1"
+price = int(raw_price)
+quantity = int(raw_quantity)
+discount = float(raw_discount)
+subtotal = price * quantity
+final_total = subtotal * (1 - discount)
+print(f"Tong thanh toan: {final_total:.0f} VND")
+`,
+      'week-02-variables-types/exercises/ex03_input_calc.py': `# Exercise 03
+product = input("Nhap ten san pham: ")
+unit_price = float(input("Nhap don gia: "))
+qty = int(input("Nhap so luong: "))
+total = unit_price * qty
+print(f"San pham: {product} - SL: {qty} - Thanh tien: {total:,.2f} VND")
+`,
+      'week-02-variables-types/solutions/ex03_input_calc_sol.py': `product = input("Nhap ten san pham: ")
+unit_price = float(input("Nhap don gia: "))
+qty = int(input("Nhap so luong: "))
+total = unit_price * qty
+print(f"San pham: {product} - SL: {qty} - Thanh tien: {total:,.2f} VND")
+`,
+      'week-02-variables-types/mini-project/starter.py': `# Mini Project: Tip Calculator
+print("=== CHIA TIEN HOA DON ===")
+bill = float(input("Tong tien hoa don (VND): "))
+tip_percent = float(input("Phan tram tip (%): "))
+people = int(input("So nguoi chia: "))
+tip_amount = bill * (tip_percent / 100)
+total_bill = bill + tip_amount
+per_person = total_bill / people
+print(f"Tien tip: {tip_amount:,.2f} VND")
+print(f"Tong cong: {total_bill:,.2f} VND")
+print(f"Moi nguoi tra: {per_person:,.2f} VND")
+`,
+      'week-02-variables-types/practice/starter/lab01_profile.py': `full_name = input("Ho va ten: ")
+birth_year = int(input("Nam sinh: "))
+city = input("Thanh pho: ")
+age = 2026 - birth_year
+print(f"Xin chao {full_name} ({age} tuoi) den tu {city}!")
+`,
+      'week-02-variables-types/practice/solutions/lab01_profile.py': `full_name = input("Ho va ten: ")
+birth_year = int(input("Nam sinh: "))
+city = input("Thanh pho: ")
+age = 2026 - birth_year
+print(f"Xin chao {full_name} ({age} tuoi) den tu {city}!")
+`,
+      'week-02-variables-types/practice/starter/lab03_ticket.py': `# Lab 03 - chưa hoàn thành
+movie = input("Ten phim: ")
+adult_tickets = int(input("So ve nguoi lon: "))
+child_tickets = int(input("So ve tre em: "))
+total_cost = 0
+print(f"Phim: {movie} | Tong tien ve: {total_cost} VND")
+`,
+      'week-02-variables-types/practice/solutions/lab03_ticket.py': `movie = input("Ten phim: ")
+adult_tickets = int(input("So ve nguoi lon: "))
+child_tickets = int(input("So ve tre em: "))
+total_cost = adult_tickets * 90000 + child_tickets * 50000
+print(f"Phim: {movie} | Tong tien ve: {total_cost:,} VND")
+`
+    };
+
+    // ===================== HELPERS =====================
+    function escapeHtml(str) {
+      if (str == null) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function showToast(msg, type='info') {
+      const t = document.getElementById('toastNotification');
+      document.getElementById('toastMessage').textContent = msg;
+      document.getElementById('toastIcon').textContent = type==='success'?'✅':type==='error'?'❌':'ℹ️';
+      t.classList.remove('hidden'); t.classList.add('flex');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(()=>{ t.classList.add('hidden'); t.classList.remove('flex'); }, 3500);
+    }
+    function getEditorCode() { return state.cmEditor ? state.cmEditor.getValue() : document.getElementById('codeEditor').value; }
+    function setEditorCode(code) {
+      state.isSyncingEditor = true;
+      if (state.cmEditor) { state.cmEditor.setValue(code||''); state.cmEditor.clearHistory(); setTimeout(()=>state.cmEditor.refresh(),10); }
+      else document.getElementById('codeEditor').value = code||'';
+      state.isSyncingEditor = false;
+    }
+
+    // ===================== PYODIDE =====================
+    async function initPyodideEngine() {
+      const badge = document.getElementById('pyodideStatusBadge');
+      try {
+        state.pyodide = await loadPyodide();
+        state.pyodideReady = true;
+        badge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Python 3.11 Sẵn Sàng`;
+        if (state.activeTaskId) {
+          document.getElementById('runCodeBtn').disabled = false;
+          document.getElementById('gradeLocalBtn').disabled = false;
+          document.getElementById('gradeHybridBtn').disabled = false;
+        }
+      } catch(e) {
+        badge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20';
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>Lỗi tải Python`;
+      }
+    }
+
+    // ===================== FILE PROCESSING =====================
+    function processUploadedFiles(fileMap) {
+      const paths = Object.keys(fileMap).sort();
+      if (!paths.length) return;
+      state.rootFolderName = paths[0].split('/')[0] || 'Workspace';
+      state.tasks = [];
+      state.referenceFiles = {...fileMap};
+
+      paths.forEach(fullPath => {
+        const lower = fullPath.toLowerCase();
+        if (!lower.endsWith('.py')) return;
+        const fileName = fullPath.split('/').pop();
+        if (fileName.startsWith('__') || fileName.startsWith('.')) return;
+
+        let category = null, categoryLabel = '';
+        if (lower.includes('/exercises/') || lower.startsWith('exercises/')) { category='exercises'; categoryLabel='Exercises'; }
+        else if (lower.includes('/mini-project/') || lower.startsWith('mini-project/')) { if (!lower.includes('solution')) { category='mini-project'; categoryLabel='Mini Project'; } }
+        else if (lower.includes('/practice/starter/') || lower.startsWith('practice/starter/')) { category='practice-starter'; categoryLabel='Practice Starter'; }
+
+        if (category) {
+          const solutionCode = findMatchingSolution(fullPath, category, fileName, fileMap);
+          const readmeContent = findMatchingReadme(fullPath, category, fileMap);
+          state.tasks.push({
+            id: `task_${state.tasks.length+1}`, fullPath, fileName, category, categoryLabel,
+            originalCode: fileMap[fullPath], currentCode: fileMap[fullPath],
+            solutionCode, readmeContent, stdinValues: [], lastOutput: null, lastError: null, aiGrade: null
+          });
+        }
+      });
+
+      if (state.tasks.length === 0) {
+        paths.forEach(fullPath => {
+          if (fullPath.toLowerCase().endsWith('.py')) {
+            const fileName = fullPath.split('/').pop();
+            state.tasks.push({
+              id: `task_${state.tasks.length+1}`, fullPath, fileName, category:'exercises', categoryLabel:'Python Script',
+              originalCode: fileMap[fullPath], currentCode: fileMap[fullPath],
+              solutionCode: null, readmeContent: null, stdinValues: [], lastOutput: null, lastError: null, aiGrade: null
+            });
+          }
+        });
+      }
+
+      renderFileTree();
+      updateSidebarStats();
+      if (state.tasks.length) {
+        document.getElementById('gradeAllBtn').disabled = false;
+        document.getElementById('summaryModalBtn').disabled = false;
+        selectTask(state.tasks[0].id);
+        showToast(`Đã nạp ${state.tasks.length} bài tập`, 'success');
+      }
+    }
+
+    function findMatchingSolution(fullPath, category, fileName, fileMap) {
+      const base = fileName.replace('.py','');
+      for (const p of Object.keys(fileMap)) {
+        const lp = p.toLowerCase();
+        if (!lp.endsWith('.py')) continue;
+        if (category==='exercises' && lp.includes('/solutions/') && lp.includes(base.toLowerCase())) return fileMap[p];
+        if (category==='practice-starter' && lp.includes('/practice/solutions/') && lp.includes(base.toLowerCase())) return fileMap[p];
+      }
+      return null;
+    }
+    function findMatchingReadme(fullPath, category, fileMap) {
+      for (const p of Object.keys(fileMap)) {
+        const lp = p.toLowerCase();
+        if (category==='mini-project' && lp.endsWith('mini-project/readme.md')) return fileMap[p];
+        if (category==='practice-starter' && lp.endsWith('practice/readme.md')) return fileMap[p];
+        if (lp.endsWith('/readme.md') && lp.split('/').length<=2) return fileMap[p];
+      }
+      return null;
+    }
+
+    // ===================== UI RENDER =====================
+    function renderFileTree() {
+      const container = document.getElementById('fileTreeContainer');
+      document.getElementById('fileCountBadge').textContent = `${state.tasks.length} bài`;
+      if (!state.tasks.length) return;
+
+      const groups = [
+        {key:'exercises', title:'1. Exercises', color:'text-blue-400'},
+        {key:'mini-project', title:'2. Mini Project', color:'text-purple-400'},
+        {key:'practice-starter', title:'3. Practice', color:'text-emerald-400'}
+      ];
+      let html = '';
+      groups.forEach(grp => {
+        const items = state.tasks.filter(t => t.category===grp.key);
+        if (!items.length) return;
+        html += `<div class="space-y-1"><div class="px-2 py-1 text-[11px] font-semibold uppercase ${grp.color}">${grp.title}</div>`;
+        items.forEach(task => {
+          const isActive = task.id === state.activeTaskId;
+          const score = task.aiGrade ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${getScoreBadgeColor(task.aiGrade.score)}">${task.aiGrade.score}/10</span>` : `<span class="w-2 h-2 rounded-full bg-ide-border"></span>`;
+          html += `<button onclick="selectTask('${task.id}')" class="w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between text-xs ${isActive?'bg-blue-500/15 text-white border border-blue-500/30':'text-ide-muted hover:bg-ide-hover border border-transparent'}">
+            <span class="truncate font-mono text-[11.5px]">${task.fileName}</span>${score}</button>`;
+        });
+        html += `</div>`;
+      });
+      container.innerHTML = html;
+      document.getElementById('sidebarScoreFooter').classList.remove('hidden');
+    }
+    function getScoreBadgeColor(s) {
+      if (s>=8) return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+      if (s>=5) return 'bg-amber-500/20 text-amber-300 border border-amber-500/30';
+      return 'bg-red-500/20 text-red-400 border border-red-500/30';
+    }
+
+    function selectTask(taskId) {
+      if (state.activeTaskId && state.activeTaskId !== taskId) {
+        const prev = state.tasks.find(t=>t.id===state.activeTaskId);
+        if (prev) prev.currentCode = getEditorCode();
+      }
+      state.activeTaskId = taskId;
+      const task = state.tasks.find(t=>t.id===taskId);
+      if (!task) return;
+
+      const pill = document.getElementById('activeCategoryPill');
+      pill.classList.remove('hidden');
+      pill.textContent = task.categoryLabel;
+      pill.className = `px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide shrink-0 ${task.category==='exercises'?'bg-blue-500/15 text-blue-400 border border-blue-500/30':task.category==='mini-project'?'bg-purple-500/15 text-purple-400 border border-purple-500/30':'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'}`;
+
+      document.getElementById('activeFilePath').textContent = task.fullPath;
+      updateModifiedStatus(task);
+      const solBadge = document.getElementById('hasSolutionBadge');
+      if (task.solutionCode) { solBadge.classList.remove('hidden'); solBadge.classList.add('inline-flex'); }
+      else { solBadge.classList.add('hidden'); }
+
+      ['viewPromptBtn','downloadCodeBtn','resetCodeBtn'].forEach(id=>{
+        const el=document.getElementById(id); el.classList.remove('hidden'); el.classList.add('inline-flex');
+      });
+
+      document.getElementById('runCodeBtn').disabled = !state.pyodideReady;
+      document.getElementById('gradeLocalBtn').disabled = !state.pyodideReady;
+      document.getElementById('gradeHybridBtn').disabled = !state.pyodideReady;
+      document.getElementById('gradeSingleBtn').disabled = false;
+
+      setEditorCode(task.currentCode);
+      detectAndRenderInputFields(task);
+      renderConsoleForTask(task);
+      renderAiResultForTask(task);
+      renderFileTree();
+    }
+
+    function updateModifiedStatus(task) {
+      const b = document.getElementById('modifiedBadge');
+      if (task && task.currentCode !== task.originalCode) { b.classList.remove('hidden'); b.classList.add('inline-flex'); }
+      else { b.classList.add('hidden'); b.classList.remove('inline-flex'); }
+    }
+
+    function extractInputPrompts(code) {
+      const prompts = [];
+      const clean = code.split('\n').filter(l=>!l.trim().startsWith('#')).join('\n');
+      const re = /\binput\s*\(\s*(?:f?["']([^"']*)["'])?\s*\)/g;
+      let m;
+      while ((m = re.exec(clean)) !== null) prompts.push(m[1] || `Giá trị #${prompts.length+1}`);
+      return prompts;
+    }
+
+    function detectAndRenderInputFields(task) {
+      const prompts = extractInputPrompts(task.currentCode);
+      const wrapper = document.getElementById('dynamicInputsWrapper');
+      const autoBtn = document.getElementById('autoFillInputBtn');
+      if (prompts.length) {
+        autoBtn.classList.remove('hidden');
+        let html = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">`;
+        prompts.forEach((p,i)=>{
+          html += `<div class="flex flex-col bg-ide-bg border border-ide-border rounded-md px-2 py-1">
+            <label class="text-[10px] text-ide-muted">#${i+1}: <span class="text-blue-300 font-mono">${escapeHtml(p)}</span></label>
+            <input type="text" data-stdin-index="${i}" value="${escapeHtml(task.stdinValues[i]||'')}" oninput="updateTaskStdin(${i},this.value)" class="bg-transparent text-xs font-mono outline-none mt-0.5" placeholder="Nhập giá trị..." />
+          </div>`;
+        });
+        html += `</div>`;
+        wrapper.innerHTML = html;
+      } else {
+        autoBtn.classList.add('hidden');
+        wrapper.innerHTML = `<input id="rawStdinInput" type="text" placeholder="Code không dùng input()" class="w-full bg-ide-bg border border-ide-border rounded-md px-2.5 py-1 text-xs font-mono outline-none" />`;
+      }
+    }
+    function updateTaskStdin(idx, val) {
+      const t = state.tasks.find(x=>x.id===state.activeTaskId);
+      if (t) t.stdinValues[idx] = val;
+    }
+    function autoFillSampleInputs() {
+      const t = state.tasks.find(x=>x.id===state.activeTaskId);
+      if (!t) return;
+      const prompts = extractInputPrompts(t.currentCode);
+      prompts.forEach((p,i)=>{
+        const lp = p.toLowerCase();
+        let s = '10';
+        if (lp.includes('ten')||lp.includes('name')||lp.includes('san pham')) s = lp.includes('phim')?'Dune Part Two':'Nguyen Van An';
+        else if (lp.includes('thanh pho')||lp.includes('city')) s='Ho Chi Minh';
+        else if (lp.includes('nam sinh')||lp.includes('year')) s='2005';
+        else if (lp.includes('gia')||lp.includes('bill')||lp.includes('price')) s='250000';
+        else if (lp.includes('tip')||lp.includes('%')) s='15';
+        else if (lp.includes('so luong')||lp.includes('nguoi')||lp.includes('ve')) s='3';
+        t.stdinValues[i] = s;
+      });
+      detectAndRenderInputFields(t);
+      showToast('Đã điền input mẫu', 'info');
+    }
+
+    function renderConsoleForTask(task) {
+      const term = document.getElementById('terminalOutput');
+      if (task.lastError) term.innerHTML = `<span class="text-red-400">${escapeHtml(task.lastError)}</span>`;
+      else if (task.lastOutput) term.innerHTML = `<span class="text-emerald-300">${escapeHtml(task.lastOutput)}</span>`;
+      else term.innerHTML = `<span class="text-ide-muted italic">Chưa chạy thử bài này.</span>`;
+    }
+
+    // ===================== RUN CODE (SANDBOX) =====================
+    async function runCurrentCode(force=false) {
+      const task = state.tasks.find(t=>t.id===state.activeTaskId);
+      if (!task || !state.pyodideReady) return;
+      task.currentCode = getEditorCode();
+      const prompts = extractInputPrompts(task.currentCode);
+      let inputs = [...(task.stdinValues||[])];
+      if (prompts.length && inputs.filter(v=>v&&v.trim()).length < prompts.length && !force) {
+        // đơn giản hóa: auto fill nếu thiếu
+        const heu = generateHeuristicSampleInputs(prompts);
+        inputs = prompts.map((_,i)=>(inputs[i]&&inputs[i].trim())||heu[i]);
+        task.stdinValues = inputs;
+        detectAndRenderInputFields(task);
+      }
+
+      const term = document.getElementById('terminalOutput');
+      term.innerHTML = `<span class="text-ide-muted">Đang chạy trong Hybrid Sandbox...</span>`;
+      document.getElementById('runCodeBtn').disabled = true;
+      const t0 = performance.now();
+
+      try {
+        state.pyodide.globals.set('__code__', task.currentCode);
+        state.pyodide.globals.set('__inputs__', state.pyodide.toPy(inputs));
+        const py = `
+import sys, io, builtins, traceback
+out = io.StringIO()
+old_out, old_err, old_in = sys.stdout, sys.stderr, builtins.input
+it = iter(__inputs__)
+def fake_input(p=""):
+    try: return str(next(it))
+    except: raise EOFError("Thiếu input")
+sys.stdout = sys.stderr = out
+builtins.input = fake_input
+err = None
+try:
+    exec(__code__, {"__name__":"__main__"})
+except Exception:
+    err = traceback.format_exc()
+finally:
+    sys.stdout, sys.stderr, builtins.input = old_out, old_err, old_in
+(out.getvalue().strip(), err)
+`;
+        const res = await state.pyodide.runPythonAsync(py);
+        const [stdout, stderr] = res.toJs();
+        res.destroy();
+        task.lastOutput = stdout;
+        task.lastError = stderr;
+        const elapsed = ((performance.now()-t0)/1000).toFixed(3);
+        let html = stderr ? `<span class="text-red-400">${escapeHtml(stderr)}</span>\n` : '';
+        html += stdout ? `<span class="text-emerald-300">${escapeHtml(stdout)}</span>` : (!stderr ? `<span class="text-ide-muted italic">(không có output)</span>` : '');
+        term.innerHTML = html + `\n<span class="text-ide-muted text-[10px]">⏱ ${elapsed}s</span>`;
+      } catch(e) {
+        term.innerHTML = `<span class="text-red-400">Lỗi Sandbox: ${escapeHtml(e.message)}</span>`;
+        task.lastError = e.message;
+      } finally {
+        document.getElementById('runCodeBtn').disabled = false;
+      }
+    }
+
+    function generateHeuristicSampleInputs(prompts) {
+      return prompts.map(p=>{
+        const lp=p.toLowerCase();
+        if (lp.includes('phim')) return 'Dune Part Two';
+        if (lp.includes('san pham')) return 'Ban phim co';
+        if (lp.includes('ten')||lp.includes('name')) return 'Nguyen Van An';
+        if (lp.includes('thanh pho')||lp.includes('city')) return 'Ho Chi Minh';
+        if (lp.includes('nam sinh')||lp.includes('year')) return '2005';
+        if (lp.includes('gia')||lp.includes('bill')||lp.includes('price')) return '250000';
+        if (lp.includes('tip')||lp.includes('%')) return '15';
+        if (lp.includes('so luong')||lp.includes('nguoi')||lp.includes('ve')) return '3';
+        return '10';
+      });
+    }
+
+    // ===================== LOCAL GRADER =====================
+    async function gradeTaskLocally(task) {
+  if (!state.pyodideReady) throw new Error('Python Engine chưa sẵn sàng');
+  if (task.id === state.activeTaskId) task.currentCode = getEditorCode();
+
+  const prompts = extractInputPrompts(task.currentCode);
+  const testInputs = prompts.length
+    ? prompts.map((_, i) => (task.stdinValues[i] && task.stdinValues[i].trim()) || generateHeuristicSampleInputs(prompts)[i])
+    : [];
+
+  state.pyodide.globals.set('__local_student_code__', task.currentCode);
+  state.pyodide.globals.set('__local_test_inputs__', state.pyodide.toPy(testInputs));
+
+  const localGraderPy = `
+import ast, sys, io, builtins, traceback, re
+
+def _run_isolated(code_str, inputs):
+    out_buf = io.StringIO()
+    old_out, old_err, old_in = sys.stdout, sys.stderr, builtins.input
+    it = iter(list(inputs))
+    def fake_input(prompt=""):
+        try:
+            return str(next(it))
+        except StopIteration:
+            raise EOFError("Thiếu dữ liệu input()")
+    sys.stdout = sys.stderr = out_buf
+    builtins.input = fake_input
+    err_msg = None
+    try:
+        exec(code_str, {"__name__": "__main__"})
+    except Exception:
+        err_msg = traceback.format_exc()
+    finally:
+        sys.stdout, sys.stderr, builtins.input = old_out, old_err, old_in
+    return out_buf.getvalue().strip(), err_msg
+
+def _analyze_ast(code_str):
+    tree = ast.parse(code_str)
+    assigned_vars = set()
+    has_print = False
+    has_input = False
+    has_pass = False
+    has_fstring = False
+    has_type_convert = False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name):
+                    assigned_vars.add(t.id)
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id == "print":
+                has_print = True
+            elif node.func.id == "input":
+                has_input = True
+            elif node.func.id in ("int", "float", "str", "bool"):
+                has_type_convert = True
+        elif isinstance(node, ast.Pass):
+            has_pass = True
+        elif isinstance(node, ast.JoinedStr):  # f-string
+            has_fstring = True
+    return assigned_vars, has_print, has_input, has_pass, has_fstring, has_type_convert
+
+def _grade():
+    student_code = __local_student_code__
+    inputs = list(__local_test_inputs__)
+
+    issues = []
+    score = 10.0
+
+    # 1. Kiểm tra cú pháp
+    try:
+        st_vars, st_print, st_input, st_pass, st_fstring, st_type_convert = _analyze_ast(student_code)
+    except SyntaxError as se:
+        return {
+            "score": 0.0,
+            "status": "Chưa hoàn thành",
+            "summary": f"Code bị lỗi cú pháp (SyntaxError) tại dòng {se.lineno}: {se.msg}",
+            "issues": [f"Lỗi cú pháp Python dòng {se.lineno}: {se.msg}"],
+            "suggestion": "Kiểm tra lại dấu ngoặc, dấu hai chấm (:), dấu nháy và thụt đầu dòng (indentation).",
+            "improvedCode": student_code
+        }
+
+    # 2. Kiểm tra bài trống
+    non_comment_lines = [l.strip() for l in student_code.splitlines() if l.strip() and not l.strip().startswith("#")]
+    if len(non_comment_lines) == 0:
+        return {
+            "score": 0.0,
+            "status": "Chưa hoàn thành",
+            "summary": "Bài làm chưa có dòng lệnh thực thi nào (chỉ có comment hoặc trống).",
+            "issues": ["Chưa viết code giải bài tập."],
+            "suggestion": "Đọc kỹ hướng dẫn TODO và viết code thực thi.",
+            "improvedCode": student_code
+        }
+
+    # 3. Các tiêu chí cấu trúc
+    if st_pass:
+        score -= 2.0
+        issues.append("Vẫn còn câu lệnh 'pass' giữ chỗ chưa hoàn thiện.")
+
+    if not st_print:
+        score -= 2.0
+        issues.append("Chương trình chưa có lệnh print() để xuất kết quả ra màn hình.")
+
+    if not st_fstring and st_print:
+        score -= 0.5
+        issues.append("Nên sử dụng f-string để định dạng chuỗi đẹp hơn.")
+
+    # 4. Chạy thử thực tế
+    st_out, st_err = _run_isolated(student_code, inputs)
+
+    if st_err:
+        score = min(score, 3.0)
+        last_line = st_err.strip().splitlines()[-1] if st_err.strip() else "Runtime Error"
+        issues.append(f"Lỗi khi chạy chương trình: {last_line}")
+        return {
+            "score": max(0.0, round(score * 2) / 2),
+            "status": "Cần cải thiện",
+            "summary": "Code đúng cú pháp nhưng gặp lỗi Runtime khi thực thi.",
+            "issues": issues,
+            "suggestion": "Kiểm tra lại việc ép kiểu dữ liệu (int/float) và tên biến trước khi tính toán.",
+            "improvedCode": student_code
+        }
+
+    # 5. Kiểm tra output
+    if not st_out:
+        score -= 1.5
+        issues.append("Chương trình chạy xong nhưng không in ra nội dung nào.")
+
+    # 6. Bonus / phạt nhẹ
+    if st_type_convert:
+        score += 0.3   # có dùng int()/float()
+    if st_fstring:
+        score += 0.3
+
+    score = max(0.0, min(10.0, round(score * 2) / 2))
+
+    if score >= 9.0:
+        status = "Xuất sắc"
+    elif score >= 6.5:
+        status = "Đạt yêu cầu"
+    elif score >= 4.0:
+        status = "Cần cải thiện"
+    else:
+        status = "Chưa hoàn thành"
+
+    summary = "Đã kiểm tra cấu trúc Python (AST) và chạy thử thành công trên Sandbox."
+    if issues:
+        summary = "Code chạy được nhưng còn một số điểm cần chỉnh sửa về cấu trúc hoặc output."
+
+    return {
+        "score": score,
+        "status": status,
+        "summary": summary,
+        "issues": issues,
+        "suggestion": "Tiếp tục cải thiện định dạng output và xử lý dữ liệu đầu vào." if issues else "Code sạch sẽ, cấu trúc tốt và chạy ổn định!",
+        "improvedCode": student_code
+    }
+
+_grade()
+`;
+
+  const proxy = await state.pyodide.runPythonAsync(localGraderPy);
+  const rawMap = proxy.toJs({ dict_converter: Object.fromEntries });
+  proxy.destroy();
+
+  rawMap.gradedBy = 'Local Structure (AST + Runtime)';
+  task.aiGrade = rawMap;
+  return rawMap;
+}
+
+    // ===================== AI GRADER =====================
+    async function gradeTaskWithAI(task) {
+      if (task.id===state.activeTaskId) task.currentCode = getEditorCode();
+      const apiKey = (state.userApiKey||'').trim();
+      if (!apiKey) throw new Error('Chưa có Gemini API Key. Dùng Local hoặc Hybrid (sẽ fallback Local).');
+
+      const systemInstruction = `Bạn là giảng viên Python. Chấm điểm thang 10 (có thể lẻ 0.5).
+Tiêu chí: Đúng chức năng (5đ), Kiểu dữ liệu & f-string (3đ), Code sạch (2đ).
+Trả về JSON thuần:
+{"score":8.5,"status":"Đạt yêu cầu","summary":"...","issues":["..."],"suggestion":"...","improvedCode":"..."}`;
+
+      const userPrompt = `Chấm bài Python:
+
+=== FILE: ${task.fileName} ===
+${task.currentCode}
+
+=== README ===
+${task.readmeContent || '(không có)'}
+
+=== ĐÁP ÁN MẪU ===
+${task.solutionCode || '(không có)'}
+
+=== OUTPUT KHI CHẠY ===
+${task.lastOutput || '(chưa chạy)'}
+
+=== LỖI ===
+${task.lastError || 'Không'}`;
+
+      const payload = {
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        generationConfig: { temperature: 0.2, responseMimeType: 'application/json' }
+      };
+
+      const model = 'gemini-2.0-flash';
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err?.error?.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error('Không nhận được phản hồi AI');
+      const parsed = JSON.parse(text);
+      parsed.gradedBy = 'Gemini AI';
+      task.aiGrade = parsed;
+      return parsed;
+    }
+
+    // ===================== HYBRID =====================
+    async function gradeTaskHybrid(task) {
+      // 1. Local trước
+      const local = await gradeTaskLocally(task);
+
+      // 2. Nếu có API Key thì gọi AI
+      let ai = null;
+      if (state.userApiKey && state.userApiKey.trim().length > 10) {
+        try {
+          // chạy thử trước để có output cho AI
+          if (!task.lastOutput && !task.lastError) await runCurrentCode(true);
+          ai = await gradeTaskWithAI(task);
+        } catch(e) {
+          console.warn('AI fail, dùng Local:', e);
+        }
+      }
+
+      if (ai) {
+        task.aiGrade = {
+          score: local.score,                     // điểm khách quan từ Local
+          status: local.status,
+          summary: `[Hybrid]\nLocal: ${local.summary}\n\nAI: ${ai.summary||''}`,
+          issues: [...(local.issues||[]), ...(ai.issues||[])],
+          suggestion: ai.suggestion || local.suggestion,
+          improvedCode: ai.improvedCode || local.improvedCode,
+          gradedBy: 'Hybrid (Local + Gemini)'
+        };
+      } else {
+        task.aiGrade = {...local, gradedBy: 'Local (Hybrid mode - không có API Key)'};
+      }
+      return task.aiGrade;
+    }
+
+    // ===================== HANDLERS =====================
+    async function handleGradeLocal() {
+      const task = state.tasks.find(t=>t.id===state.activeTaskId);
+      if (!task) return;
+      const btn = document.getElementById('gradeLocalBtn');
+      const box = document.getElementById('aiResultContainer');
+      btn.disabled = true;
+      box.innerHTML = `<div class="h-full flex flex-col items-center justify-center p-6"><div class="w-10 h-10 border-2 border-teal-400 border-t-transparent rounded-full animate-spin mb-3"></div><p class="text-sm">Đang chấm Local...</p></div>`;
+      try {
+        await gradeTaskLocally(task);
+        renderAiResultForTask(task); renderFileTree(); updateSidebarStats();
+        showToast(`Local: ${task.aiGrade.score}/10`, 'success');
+      } catch(e) {
+        box.innerHTML = `<div class="p-4 text-red-300 text-xs">${escapeHtml(e.message)}</div>`;
+      } finally { btn.disabled = false; }
+    }
+
+    async function handleGradeHybrid() {
+      const task = state.tasks.find(t=>t.id===state.activeTaskId);
+      if (!task) return;
+      const btn = document.getElementById('gradeHybridBtn');
+      const box = document.getElementById('aiResultContainer');
+      btn.disabled = true;
+      box.innerHTML = `<div class="h-full flex flex-col items-center justify-center p-6"><div class="w-10 h-10 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin mb-3"></div><p class="text-sm">Đang chấm Hybrid (Local + AI)...</p></div>`;
+      try {
+        await gradeTaskHybrid(task);
+        renderAiResultForTask(task); renderFileTree(); updateSidebarStats();
+        showToast(`Hybrid: ${task.aiGrade.score}/10`, 'success');
+      } catch(e) {
+        box.innerHTML = `<div class="p-4 text-red-300 text-xs">${escapeHtml(e.message)}</div>`;
+      } finally { btn.disabled = false; }
+    }
+
+    async function handleGradeSingle() {
+      const task = state.tasks.find(t=>t.id===state.activeTaskId);
+      if (!task) return;
+      const btn = document.getElementById('gradeSingleBtn');
+      const box = document.getElementById('aiResultContainer');
+      btn.disabled = true;
+      box.innerHTML = `<div class="h-full flex flex-col items-center justify-center p-6"><div class="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mb-3"></div><p class="text-sm">AI đang chấm...</p></div>`;
+      try {
+        await gradeTaskWithAI(task);
+        renderAiResultForTask(task); renderFileTree(); updateSidebarStats();
+        showToast(`AI: ${task.aiGrade.score}/10`, 'success');
+      } catch(e) {
+        box.innerHTML = `<div class="p-4 rounded-xl bg-red-950/40 border border-red-500/30 text-red-200 text-xs space-y-3">
+          <p class="font-semibold">Không thể gọi AI</p><p>${escapeHtml(e.message)}</p>
+          <button onclick="handleGradeLocal()" class="px-3 py-1.5 rounded bg-teal-600 text-white text-xs">Dùng Local thay thế</button>
+        </div>`;
+      } finally { btn.disabled = false; }
+    }
+
+    async function handleGradeAll() {
+      if (!state.tasks.length || state.isGradingAll) return;
+      state.isGradingAll = true;
+      const btn = document.getElementById('gradeAllBtn');
+      btn.disabled = true;
+      let ok = 0;
+      for (let i=0; i<state.tasks.length; i++) {
+        const task = state.tasks[i];
+        btn.innerHTML = `<span>Đang chấm ${i+1}/${state.tasks.length}...</span>`;
+        selectTask(task.id);
+        try {
+          await gradeTaskHybrid(task);
+          ok++;
+          renderAiResultForTask(task); renderFileTree(); updateSidebarStats();
+        } catch(e) { console.error(e); }
+      }
+      state.isGradingAll = false;
+      btn.disabled = false;
+      btn.innerHTML = `<span>Chấm Toàn Bộ</span>`;
+      showToast(`Đã chấm ${ok}/${state.tasks.length} bài (Hybrid)`, 'success');
+      openSummaryModal();
+    }
+
+    function renderAiResultForTask(task) {
+      const box = document.getElementById('aiResultContainer');
+      if (!task.aiGrade) {
+        box.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-center p-6 text-ide-muted">
+          <p class="text-sm font-medium text-ide-text mb-2">Chưa chấm bài này</p>
+          <div class="flex gap-2">
+            <button onclick="handleGradeLocal()" class="px-3 py-1.5 rounded text-xs bg-teal-600 text-white">Local</button>
+            <button onclick="handleGradeHybrid()" class="px-3 py-1.5 rounded text-xs bg-indigo-600 text-white">Hybrid</button>
+            <button onclick="handleGradeSingle()" class="px-3 py-1.5 rounded text-xs bg-blue-600 text-white">AI</button>
+          </div>
+        </div>`;
+        return;
+      }
+      const g = task.aiGrade;
+      const color = g.score>=8 ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' : g.score>=5 ? 'text-amber-300 border-amber-500/30 bg-amber-500/10' : 'text-red-400 border-red-500/30 bg-red-500/10';
+      const src = g.gradedBy?.includes('Hybrid') ? 'bg-indigo-500/20 text-indigo-300' : g.gradedBy?.includes('Local') ? 'bg-teal-500/20 text-teal-300' : 'bg-purple-500/20 text-purple-300';
+      const issues = (g.issues&&g.issues.length) ? `<ul class="space-y-1 text-xs text-red-300 list-disc pl-4">${g.issues.map(i=>`<li>${escapeHtml(i)}</li>`).join('')}</ul>` : `<p class="text-xs text-emerald-400">✓ Không phát hiện lỗi</p>`;
+
+      box.innerHTML = `
+        <div class="space-y-4">
+          <div class="p-4 rounded-xl border ${color} flex justify-between items-center">
+            <div>
+              <div class="text-[11px] uppercase opacity-80">Kết quả</div>
+              <div class="font-bold mt-0.5">${escapeHtml(g.status)}</div>
+              <span class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-mono ${src}">${escapeHtml(g.gradedBy||'')}</span>
+            </div>
+            <div class="text-3xl font-mono font-extrabold">${g.score}<span class="text-sm opacity-75">/10</span></div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-ide-panel border border-ide-border">
+            <h4 class="text-xs font-semibold text-blue-400 mb-1.5">Nhận xét</h4>
+            <p class="text-xs leading-relaxed whitespace-pre-wrap">${escapeHtml(g.summary)}</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-ide-panel border border-ide-border">
+            <h4 class="text-xs font-semibold text-amber-400 mb-2">Chi tiết lỗi</h4>
+            ${issues}
+          </div>
+          <div class="p-3.5 rounded-xl bg-ide-panel border border-ide-border">
+            <h4 class="text-xs font-semibold text-purple-400 mb-1.5">Gợi ý</h4>
+            <p class="text-xs mb-3">${escapeHtml(g.suggestion||'')}</p>
+            <div class="flex justify-between mb-1.5">
+              <span class="text-[11px] text-ide-muted">Code gợi ý:</span>
+              <button onclick="applySuggestedCode()" class="text-[11px] text-blue-400 underline">Áp dụng</button>
+            </div>
+            <pre class="p-2.5 rounded-lg bg-[#090c10] border border-ide-border text-[11px] font-mono text-emerald-300 overflow-x-auto"><code>${escapeHtml(g.improvedCode||'')}</code></pre>
+          </div>
+        </div>`;
+    }
+
+    function applySuggestedCode() {
+      const t = state.tasks.find(x=>x.id===state.activeTaskId);
+      if (!t?.aiGrade?.improvedCode) return;
+      t.currentCode = t.aiGrade.improvedCode;
+      setEditorCode(t.currentCode);
+      updateModifiedStatus(t);
+      detectAndRenderInputFields(t);
+      showToast('Đã áp dụng code gợi ý', 'info');
+    }
+
+    function updateSidebarStats() {
+      const total = state.tasks.length;
+      const graded = state.tasks.filter(t=>t.aiGrade);
+      document.getElementById('gradedProgressText').textContent = `${graded.length}/${total} bài`;
+      document.getElementById('gradedProgressBar').style.width = total ? `${Math.round(graded.length/total*100)}%` : '0%';
+      if (graded.length) {
+        const avg = (graded.reduce((s,t)=>s+t.aiGrade.score,0)/graded.length).toFixed(2);
+        document.getElementById('averageScoreText').textContent = `${avg} / 10`;
+      } else document.getElementById('averageScoreText').textContent = '-- / 10';
+    }
+
+    function openSummaryModal() {
+      const body = document.getElementById('summaryModalBody');
+      const graded = state.tasks.filter(t=>t.aiGrade);
+      const avg = graded.length ? (graded.reduce((s,t)=>s+t.aiGrade.score,0)/graded.length).toFixed(2) : '--';
+      body.innerHTML = `
+        <div class="mb-4 p-4 rounded-xl bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/30">
+          <div class="text-sm text-amber-300">Điểm trung bình</div>
+          <div class="text-3xl font-mono font-bold">${avg}<span class="text-base">/10</span></div>
+          <div class="text-xs text-ide-muted mt-1">Đã chấm ${graded.length}/${state.tasks.length} bài</div>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-ide-border">
+          <table class="w-full text-left text-xs">
+            <thead><tr class="bg-ide-panel text-ide-muted uppercase">
+              <th class="py-2 px-3">Phân loại</th><th class="py-2 px-3">File</th><th class="py-2 px-3">Trạng thái</th><th class="py-2 px-3 text-right">Điểm</th>
+            </tr></thead>
+            <tbody class="divide-y divide-ide-border">
+              ${state.tasks.map(t=>`
+                <tr class="hover:bg-ide-hover cursor-pointer" onclick="closeSummaryAndSelect('${t.id}')">
+                  <td class="py-2 px-3">${t.categoryLabel}</td>
+                  <td class="py-2 px-3 font-mono text-blue-400">${escapeHtml(t.fileName)}</td>
+                  <td class="py-2 px-3">${t.aiGrade?escapeHtml(t.aiGrade.status):'-'}</td>
+                  <td class="py-2 px-3 text-right">${t.aiGrade?`<span class="px-2 py-0.5 rounded font-mono font-bold ${getScoreBadgeColor(t.aiGrade.score)}">${t.aiGrade.score}/10</span>`:'<span class="text-ide-muted">Chưa</span>'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      document.getElementById('summaryModal').classList.remove('hidden');
+      document.getElementById('summaryModal').classList.add('flex');
+    }
+    function closeSummaryAndSelect(id) {
+      document.getElementById('summaryModal').classList.add('hidden');
+      document.getElementById('summaryModal').classList.remove('flex');
+      selectTask(id);
+    }
+
+    // ===================== INIT =====================
+    function initCodeMirror() {
+      state.cmEditor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+        mode: {name:'python', version:3},
+        theme: 'material-darker',
+        lineNumbers: true, indentUnit:4, tabSize:4,
+        autoCloseBrackets: true, matchBrackets: true,
+        extraKeys: {'Ctrl-Enter':()=>runCurrentCode(false), 'Cmd-Enter':()=>runCurrentCode(false)}
+      });
+      state.cmEditor.on('change', ()=>{
+        if (state.isSyncingEditor) return;
+        const t = state.tasks.find(x=>x.id===state.activeTaskId);
+        if (t) { t.currentCode = state.cmEditor.getValue(); updateModifiedStatus(t); }
+      });
+    }
+
+    function changeFont(delta) {
+      state.editorFontSize = Math.min(22, Math.max(11, state.editorFontSize+delta));
+      document.documentElement.style.setProperty('--editor-font-size', state.editorFontSize+'px');
+      if (state.cmEditor) state.cmEditor.refresh();
+    }
+
+    function updateApiKeyIndicator() {
+      const dot = document.getElementById('apiKeyStatusDot');
+      dot.className = state.userApiKey && state.userApiKey.length>10 ? 'w-2 h-2 rounded-full bg-emerald-400' : 'w-2 h-2 rounded-full bg-amber-400';
+    }
+
+    window.addEventListener('DOMContentLoaded', ()=>{
+      initCodeMirror();
+      initPyodideEngine();
+      updateApiKeyIndicator();
+
+      document.getElementById('openApiKeyModalBtn').onclick = ()=>{
+        document.getElementById('geminiApiKeyInput').value = state.userApiKey||'';
+        document.getElementById('apiKeyModal').classList.remove('hidden');
+        document.getElementById('apiKeyModal').classList.add('flex');
+      };
+      document.getElementById('closeApiKeyModalBtn').onclick = ()=>{
+        document.getElementById('apiKeyModal').classList.add('hidden');
+        document.getElementById('apiKeyModal').classList.remove('flex');
+      };
+      document.getElementById('saveApiKeyBtn').onclick = ()=>{
+        const v = document.getElementById('geminiApiKeyInput').value.trim();
+        state.userApiKey = v;
+        if (v) localStorage.setItem('pygrader_gemini_api_key', v);
+        else localStorage.removeItem('pygrader_gemini_api_key');
+        updateApiKeyIndicator();
+        document.getElementById('apiKeyModal').classList.add('hidden');
+        showToast(v?'Đã lưu API Key':'Đã xóa Key', 'success');
+      };
+      document.getElementById('clearApiKeyBtn').onclick = ()=>{
+        document.getElementById('geminiApiKeyInput').value = '';
+        state.userApiKey = '';
+        localStorage.removeItem('pygrader_gemini_api_key');
+        updateApiKeyIndicator();
+        showToast('Đã xóa Key', 'info');
+      };
+
+      document.getElementById('folderInput').onchange = async e=>{
+        const files = Array.from(e.target.files||[]);
+        const map = {};
+        for (const f of files) {
+          if (/\.(py|md|txt)$/i.test(f.webkitRelativePath||f.name)) map[f.webkitRelativePath||f.name] = await f.text();
+        }
+        processUploadedFiles(map);
+        e.target.value = '';
+      };
+      document.getElementById('loadSampleBtn').onclick = ()=>processUploadedFiles(SAMPLE_WEEK_02_FILES);
+      document.getElementById('fontDecreaseBtn').onclick = ()=>changeFont(-1);
+      document.getElementById('fontIncreaseBtn').onclick = ()=>changeFont(1);
+      document.getElementById('runCodeBtn').onclick = ()=>runCurrentCode(false);
+      document.getElementById('gradeLocalBtn').onclick = handleGradeLocal;
+      document.getElementById('gradeHybridBtn').onclick = handleGradeHybrid;
+      document.getElementById('gradeSingleBtn').onclick = handleGradeSingle;
+      document.getElementById('gradeAllBtn').onclick = handleGradeAll;
+      document.getElementById('autoFillInputBtn').onclick = autoFillSampleInputs;
+      document.getElementById('clearConsoleBtn').onclick = ()=>{ document.getElementById('terminalOutput').innerHTML = `<span class="text-ide-muted italic">Console đã xóa.</span>`; };
+      document.getElementById('resetCodeBtn').onclick = ()=>{
+        const t = state.tasks.find(x=>x.id===state.activeTaskId);
+        if (!t) return;
+        t.currentCode = t.originalCode;
+        setEditorCode(t.originalCode);
+        updateModifiedStatus(t);
+        detectAndRenderInputFields(t);
+        showToast('Đã reset code gốc', 'info');
+      };
+      document.getElementById('downloadCodeBtn').onclick = ()=>{
+        const t = state.tasks.find(x=>x.id===state.activeTaskId);
+        if (!t) return;
+        const blob = new Blob([getEditorCode()], {type:'text/x-python'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = t.fileName;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      };
+      document.getElementById('viewPromptBtn').onclick = ()=>{
+        const t = state.tasks.find(x=>x.id===state.activeTaskId);
+        if (!t) return;
+        document.getElementById('promptModalTitle').textContent = `Đề bài: ${t.fileName}`;
+        let html = t.readmeContent ? `<div class="markdown-body">${marked.parse(t.readmeContent)}</div>` : `<pre class="p-3 bg-[#090c10] rounded text-xs font-mono">${escapeHtml(t.originalCode)}</pre>`;
+        if (t.solutionCode) html += `<div class="mt-5 pt-4 border-t border-ide-border"><div class="text-xs font-semibold text-emerald-400 mb-2">Đáp án mẫu</div><pre class="p-3 bg-[#090c10] rounded text-xs font-mono text-emerald-300">${escapeHtml(t.solutionCode)}</pre></div>`;
+        document.getElementById('promptModalBody').innerHTML = html;
+        document.getElementById('promptModal').classList.remove('hidden');
+        document.getElementById('promptModal').classList.add('flex');
+      };
+      document.getElementById('closePromptModalBtn').onclick = ()=>{
+        document.getElementById('promptModal').classList.add('hidden');
+        document.getElementById('promptModal').classList.remove('flex');
+      };
+      document.getElementById('summaryModalBtn').onclick = openSummaryModal;
+      document.getElementById('closeSummaryModalBtn').onclick = ()=>{
+        document.getElementById('summaryModal').classList.add('hidden');
+        document.getElementById('summaryModal').classList.remove('flex');
+      };
+
+      // Drag drop
+      const sidebar = document.getElementById('sidebar');
+      sidebar.addEventListener('dragover', e=>{ e.preventDefault(); document.getElementById('dropZone')?.classList.add('border-blue-500','bg-blue-500/10'); });
+      sidebar.addEventListener('dragleave', ()=> document.getElementById('dropZone')?.classList.remove('border-blue-500','bg-blue-500/10'));
+      sidebar.addEventListener('drop', async e=>{
+        e.preventDefault();
+        document.getElementById('dropZone')?.classList.remove('border-blue-500','bg-blue-500/10');
+        // đơn giản hóa: dùng input file
+        document.getElementById('folderInput').click();
+      });
+      document.getElementById('dropZone')?.addEventListener('click', ()=>document.getElementById('folderInput').click());
+    });
+  </script>
+</body>
+</html>
